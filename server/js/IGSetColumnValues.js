@@ -5,12 +5,14 @@ window.mho = window.mho || {}
     this.ig$ = options.ig$
     this.grid = options.grid
     this.model = this.grid.model
-    this.da = options.options
+    this.da = options.da
     this.type = options.type
     this.ajaxIdentifier = options.ajaxIdentifier
     this.itemsToSubmit = options.itemsToSubmit
     this.staticValue = options.staticValue
+    this.jsColumns = options.jsColumns
     this.jsExpression = options.jsExpression
+    this.dialogReturnItem = options.dialogReturnItem
     this.recordSelection = options.recordSelection
     this.columnConfig = this.ig$.interactiveGrid('option', 'config.columns')
     this.affectedColumns = options.affectedColumns
@@ -39,12 +41,23 @@ window.mho = window.mho || {}
       js: this.updateWithJavaScriptExpressionValues,
       sql: this.ajaxCallback,
       plsql: this.ajaxCallback,
-      function: this.ajaxCallback
-      // dialog: _getDialogValues
+      function: this.ajaxCallback,
+      dialog: this.updateWithDialogReturnItems
     }
 
     this.setRecords()
     this.data = this.getCurrentData()
+    // this.filterJsColumns()
+  }
+
+  IGUpdate.prototype.filterJsColumns = function () {
+    let self = this
+    this.jsColumns = this.jsColumns.filter(function (columnName) {
+      let column = self.columnConfig.filter(function (column) {
+        return column.name === columnName
+      })[0]
+      return (column)
+    })
   }
 
   IGUpdate.prototype.setRecords = function () {
@@ -71,27 +84,69 @@ window.mho = window.mho || {}
 
   IGUpdate.prototype.setValues = function () {
     let self = this
+    let focus = true
+
+    function valToString (val) {
+      let stringVal
+      if (typeof val === 'number') {
+        stringVal = val.toString()
+      } else if (val === null) {
+        stringVal = ''
+      } else {
+        stringVal = val
+      }
+      return stringVal
+    }
+
     // Set the record values for each record in the updated data object
     self.records.forEach(function (record, idx) {
+      // Easier to update via columnItems, but only one row can be active and editing must be turned on
+      self.ig$.interactiveGrid('setSelectedRecords', record, focus)
+      // Slightly faster to not focus for the rest of the records
+      focus = false
+      self.grid.setEditMode(true)
       self.data[idx].forEach(function (column) {
         if (column.isAffected) {
-          self.model.setValue(record, column.name, column.value)
+          // if the value is an array, make sure each value is a string
+          if (Array.isArray(column.value)) {
+            column.value = column.value.map(valToString)
+          }
+          // Set columnItem value
+          apex.item(column.staticId).setValue(column.value)
         }
       })
     })
+    
+    // Reset the selected rows and turn editing off
+    self.ig$.interactiveGrid('setSelectedRecords', self.records)
+    self.grid.setEditMode(false)
+
+    // For async callbacks, we need to resume the action
+    apex.da.resume(self.da.resumeCallback, false)
   }
 
   IGUpdate.prototype.getCurrentData = function () {
     let self = this
+    let value
     return this.records.map(function (record) {
       return self.columnConfig.map(function (column) {
+        value = self.model.getValue(record, column.name)
+        // We don't need to have the value as object, just as string
+        if (value && value.v) {
+          if (Array.isArray(value.v)) {
+            value = value.v.join(':')
+          }
+          value = value.v
+        }
+        value = value || ''
         return {
           name: column.name,
-          value: self.model.getValue(record, column.name),
+          value: value,
           dataType: column.dataType,
           formatMask: column.appearance.formatMask,
           isReadOnly: column.isReadOnly,
-          isAffected: (self.affectedColumns.indexOf(column.name) > -1)
+          isAffected: (self.affectedColumns.indexOf(column.name) > -1),
+          staticId: column.staticId
         }
       })
     })
@@ -104,6 +159,9 @@ window.mho = window.mho || {}
       x01: this.type,
       p_clob_01: JSON.stringify(this.data),
       pageItems: this.itemsToSubmit
+    }, {
+      loadingIndicator: this.ig$,
+      loadingIndicatorPosition: 'centered'
     })
       .then(function (data) {
         self.data = data
@@ -132,27 +190,29 @@ window.mho = window.mho || {}
     return deferred.promise()
   }
 
-  /**
-   * Get the JavaScript Expression value
-   *
-   * @param {any} options
-   * @returns A resolved promise with the value
-   */
   IGUpdate.prototype.updateWithJavaScriptExpressionValues = function () {
     let self = this
     let deferred = $.Deferred()
-    let context = {}
+    let columnValues = []
+    let value
 
     this.data = this.data.map(function (record) {
-      // Add columns as object in context
-      context = {}
-      record.forEach(function (column) {
-        context[column.name] = column.value
+      columnValues = []
+
+      // Get current value per column
+      columnValues = self.jsColumns.map(function (columnName) {
+        let column = record.filter(function (column) {
+          return column.name === columnName
+        })[0]
+        return (column) ? column.value : ''
       })
+
       // Change value for each column
       return record.map(function (column) {
         if (column.isAffected) {
-          column.value = self.jsExpression.call(context)
+          value = self.jsExpression.apply(null, columnValues)
+          // if value is an array
+          column.value = value
         }
         return column
       })
@@ -163,45 +223,13 @@ window.mho = window.mho || {}
     return deferred.promise()
   }
 
-  // IGUpdate.prototype.updateWithSQLValues = function () {
-  //   this.ajaxCallback()
-  // }
+  IGUpdate.prototype.updateWithDialogReturnItems = function () {
+    console.log(this.da.data)
 
-  /**
-   * Get the PL/SQL expression values
-   *
-   * @param {any} options
-   * @param {any} records
-   * @returns A resolved promise with the value
-   */
-  function _getPLSQLExpressionValues (options, records) {
-    return _ajaxCallback(options.ajaxIdentifier, options.type, options.pageItemsToSubmit, options.ig$, records)
+    // Get dialog return item value
+    this.staticValue = this.da.data[this.dialogReturnItem]
+    return this.updateWithStaticValue()
   }
-
-  /**
-   * Get the PL/SQL function values
-   *
-   * @param {any} options
-   * @param {any} records
-   * @returns A resolved promise with the value
-   */
-  function _getPLSQLFunctionValues (options, records) {
-    return _ajaxCallback(options.ajaxIdentifier, options.type, options.pageItemsToSubmit, options.ig$, records)
-  }
-
-  /**
-   * Get the Dialog Return value
-   *
-   * @param {any} options
-   * @param {any} records
-   * @returns A resolved promise with the value
-   */
-  function _getDialogValues (options, records) {
-    options.staticValue = options.da
-    return _getStaticValue(options, records)
-  }
-
-
 
   /**
    * Region widgets may not exist on page load.
@@ -248,6 +276,7 @@ window.mho = window.mho || {}
 
       // Get records and columns for this update
       let affectedColumns = options.affectedColumns.split(',')
+      let jsColumns = options.jsColumns.split(',')
 
       // Create a new instance of the object to update the grid
       let update = new IGUpdate({
@@ -258,7 +287,9 @@ window.mho = window.mho || {}
         ajaxIdentifier: options.ajaxIdentifier,
         itemsToSubmit: options.itemsToSubmit,
         staticValue: options.staticValue,
+        jsColumns: jsColumns,
         jsExpression: options.jsExpression,
+        dialogReturnItem: options.dialogReturnItem,
         recordSelection: options.recordSelection,
         affectedColumns: affectedColumns
       })
