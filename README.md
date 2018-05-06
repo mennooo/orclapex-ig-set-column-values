@@ -1,6 +1,8 @@
 # orclapex-ig-set-column-values
 An Oracle APEX Plug-in to set column values just like the native `Set Value` Dynamic Action. No JavaScript is required anymore.
 
+![Preview](https://github.com/mennooo/orclapex-ig-set-column-values/blob/master/preview.gif "Preview")
+
 You can set values using a:
 * Static Value
 * JavaScript Expression
