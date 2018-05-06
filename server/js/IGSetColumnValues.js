@@ -240,15 +240,19 @@ window.mho = window.mho || {}
    */
   function _getWidget (regionId) {
     let region = apex.region(regionId)
-    let ig$ = region.widget()
     let deferred = $.Deferred()
-
-    if (ig$.length > 0) {
-      deferred.resolve(ig$)
+    if (!region) {
+      deferred.reject(Error('No interactive grid region was found. Make sure the triggering element is an Interactive Grid'))
     } else {
-      region.element.on('interactivegridcreate', function () {
-        deferred.resolve(region.widget())
-      })
+      let ig$ = region.widget()
+  
+      if (ig$.length > 0) {
+        deferred.resolve(ig$)
+      } else {
+        region.element.on('interactivegridcreate', function () {
+          deferred.resolve(region.widget())
+        })
+      }
     }
 
     return deferred.promise()
@@ -299,6 +303,10 @@ window.mho = window.mho || {}
         .then(function () {
           update.setValues()
         })
+    })
+
+    promise.fail(function (err) {
+      throw err
     })
   }
 
