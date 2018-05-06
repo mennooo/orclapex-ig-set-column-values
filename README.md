@@ -8,7 +8,7 @@ The reason is that only in this scenario, you can choose the columns by name as 
 
 The event could be triggered by a (toolbar) button, dialog close event or any other event on the Interactive Grid.
 
-It works very well with the **Extend Interactive Grid Toolbar Plugin** by Marko Goricki.
+It works very well with the **Extend Interactive Grid Toolbar Plugin** by Marko Goricki.  
 https://github.com/mgoricki/apex-plugin-extend-ig-toolbar
 
 
