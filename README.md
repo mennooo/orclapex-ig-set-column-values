@@ -13,6 +13,8 @@ Examples for each of the above is given in the help section of the plugin.
 
 ## Adding the dynamic action on your page
 
+![DA definition](https://github.com/mennooo/orclapex-ig-set-column-values/blob/master/images/triggeringElement.PNG "DA definition")
+
 **The triggering element has to be the Interactive Grid**
 The reason is that only in this scenario, you can choose the columns by name as the `Affected Elements`.
 
@@ -72,6 +74,10 @@ You can set this to **All Records** if you don't want the users to check all rec
 
 ### Columns to use as bind variable
 Interactive Grid Column Values can be used as bind variables, like Page Items. Each of the column names specified here must be present in the SQL Statement, PL/SQL Expression or PL/SQL Function Body.
+
+### Example
+
+![DA Action settings](https://github.com/mennooo/orclapex-ig-set-column-values/blob/master/images/settings.PNG "DA Action settings")
 
 ## Why this plugin
 
