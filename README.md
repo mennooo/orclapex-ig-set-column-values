@@ -1,6 +1,16 @@
 # orclapex-ig-set-column-values
 An Oracle APEX Plug-in to set column values just like the native `Set Value` Dynamic Action. No JavaScript is required anymore.
 
+You can set values using a:
+* Static Value
+* JavaScript Expression
+* SQL Statement
+* PL/SQL Function Body
+* Dialog Return Item
+* PL/SQL Expression
+
+Examples for each of the above is given in the help section of the plugin.
+
 ## Adding the dynamic action on your page
 
 **The triggering element has to be the Interactive Grid**
