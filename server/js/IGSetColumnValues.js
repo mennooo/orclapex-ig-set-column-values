@@ -101,9 +101,15 @@ window.mho = window.mho || {}
     // Set the record values for each record in the updated data object
     self.records.forEach(function (record, idx) {
       // Easier to update via columnItems, but only one row can be active and editing must be turned on
-      self.ig$.interactiveGrid('setSelectedRecords', record, focus)
+      self.grid.setSelectedRecords([record], focus)
+
+      // MHO: workaround for APEX 5.1
+      let row$ = self.grid.view$.grid('getSelection')[0]
+      self.grid.view$.data('apex-grid')._setFocusable(row$.find('.a-GV-cell:first'))
+      // End workaround
+
       // Slightly faster to not focus for the rest of the records
-      focus = false
+      focus = true
       self.grid.setEditMode(true)
       self.data[idx].forEach(function (column) {
         if (column.isAffected) {
@@ -115,6 +121,7 @@ window.mho = window.mho || {}
           apex.item(column.staticId).setValue(column.value)
         }
       })
+      self.grid.setEditMode(false)
     })
     
     // Reset the selected rows and turn editing off
@@ -224,8 +231,6 @@ window.mho = window.mho || {}
   }
 
   IGUpdate.prototype.updateWithDialogReturnItems = function () {
-    console.log(this.da.data)
-
     // Get dialog return item value
     this.staticValue = this.da.data[this.dialogReturnItem]
     return this.updateWithStaticValue()
