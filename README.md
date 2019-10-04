@@ -1,3 +1,5 @@
+# This project is not maintained anymore by me due to the lack of time for support. I'm happy to change ownership if someone is interested.
+
 # orclapex-ig-set-column-values
 An Oracle APEX Plug-in to set column values just like the native `Set Value` Dynamic Action. No JavaScript is required anymore.
 
